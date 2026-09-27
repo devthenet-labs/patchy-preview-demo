@@ -1,0 +1,2 @@
+# Immutable ECR tag. Publish from trusted main after the ECR/IAM apply is approved.
+image: 377946145366.dkr.ecr.us-east-1.amazonaws.com/patchy/app-envs/patchy-preview-demo:toolchain-v1

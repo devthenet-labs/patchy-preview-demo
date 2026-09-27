@@ -1,0 +1,45 @@
+# Runtime contract example only. Patchy's preview-controller, not this app,
+# renders and owns the slot Deployment, Service and Ingress. Do not kubectl apply.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: preview-demo}
+  template:
+    metadata:
+      labels: {app: preview-demo}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: demo
+          # Replace only with the controller-validated 40-hex revision.
+          image: 377946145366.dkr.ecr.us-east-1.amazonaws.com/patchy/previews/patchy-preview-demo:sha-0000000000000000000000000000000000000000
+          ports: [{name: http, containerPort: 8080}]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo
+spec:
+  type: ClusterIP
+  selector: {app: preview-demo}
+  ports: [{port: 8080, targetPort: http}]
