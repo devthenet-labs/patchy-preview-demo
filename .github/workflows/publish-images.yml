@@ -1,0 +1,37 @@
+name: publish images
+on:
+  workflow_run:
+    workflows: [test, agent image]
+    types: [completed]
+permissions: {}
+jobs:
+  runtime:
+    # Disabled until the separately approved Terraform apply and activation.
+    if: >-
+      vars.PREVIEW_PUBLISH_ENABLED == 'true' &&
+      github.event.workflow_run.name == 'test' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.id == github.event.repository.id
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      id-token: write
+    uses: ./.github/workflows/publish-runtime.yml
+    with:
+      run-id: ${{ github.event.workflow_run.id }}
+  agent:
+    if: >-
+      vars.PREVIEW_PUBLISH_ENABLED == 'true' &&
+      github.event.workflow_run.name == 'agent image' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event != 'pull_request' &&
+      github.event.workflow_run.head_repository.id == github.event.repository.id
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      id-token: write
+    uses: ./.github/workflows/publish-agent.yml
+    with:
+      run-id: ${{ github.event.workflow_run.id }}

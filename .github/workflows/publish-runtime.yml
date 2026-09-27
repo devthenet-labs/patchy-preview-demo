@@ -1,0 +1,70 @@
+name: trusted runtime publisher
+on:
+  workflow_call:
+    inputs:
+      run-id:
+        required: true
+        type: number
+permissions: {}
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_run'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      id-token: write
+    concurrency:
+      group: publish-runtime-${{ inputs.run-id }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout trusted publisher only, never PR source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+          sparse-checkout: .github/publish
+      - name: Re-read authoritative run, workflow, PR and artifact metadata
+        id: guard
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          RUN_ID: ${{ inputs.run-id }}
+          IMAGE_KIND: runtime
+        with:
+          script: |
+            const {guard} = require('./.github/publish/guard.cjs');
+            const result = await guard({github, runID: process.env.RUN_ID, kind: process.env.IMAGE_KIND});
+            for (const [key, value] of Object.entries(result)) core.setOutput(key, value);
+      - name: Download only that run's immutable artifact ID, outside the checkout
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: ${{ steps.guard.outputs.artifact_id }}
+          run-id: ${{ inputs.run-id }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/incoming
+          merge-multiple: true
+      - name: Validate OCI data; do not load, unpack layers, build or run it
+        id: image
+        env:
+          IMAGE_KIND: ${{ steps.guard.outputs.kind }}
+        run: |
+          test "$(find "$RUNNER_TEMP/incoming" -mindepth 1 -maxdepth 1 | wc -l)" -eq 1
+          digest=$(python3 .github/publish/validate_oci.py "$RUNNER_TEMP/incoming/$IMAGE_KIND.oci.tar" "$RUNNER_TEMP/validated" "$IMAGE_KIND")
+          printf 'digest=%s\n' "$digest" >> "$GITHUB_OUTPUT"
+      - name: Install the distribution's image-copy utility
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends skopeo
+      - name: Obtain the image-kind-specific role only after validation
+        uses: aws-actions/configure-aws-credentials@cabfdba3510de1431bac9dba27511d97497fc100 # v5
+        with:
+          aws-region: us-east-1
+          role-duration-seconds: 900
+          allowed-account-ids: '377946145366'
+          role-to-assume: arn:aws:iam::377946145366:role/devthenet-labs-preview-demo-runtime-push
+      - name: Copy opaque blobs to this image-kind's ECR repository
+        env:
+          IMAGE_KIND: ${{ steps.guard.outputs.kind }}
+          IMAGE_SHA: ${{ steps.guard.outputs.sha }}
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
+        run: bash .github/publish/copy-image.sh
