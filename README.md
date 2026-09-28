@@ -1,6 +1,6 @@
 # patchy-preview-demo
 
-A small, benign Go app for patchy's isolated previews. No accounts, storage,
+A tiny, benign Go app for patchy's isolated previews. No accounts, storage,
 secrets or outbound requests. **The deliberately vulnerable `patchy-target`
 must never be deployed as a preview.**
 
