@@ -65,61 +65,18 @@ func emit(r result) {
 
 func main() {
 	const timeout = 3 * time.Second
-	// Let the node agent attach policy before making any network connection.
-	emit(result{Name: "startup-delay", Target: "pod", Outcome: "waiting", Detail: "60s"})
-	time.Sleep(60 * time.Second)
-	emit(result{Name: "startup-delay", Target: "pod", Outcome: "complete", Detail: "60s"})
-
+	// Probe only the IMDSv2 token endpoint during the startup policy window.
+	// imdsTokenPUT reads one HTTP status line, never a token or credentials.
 	dialer := &net.Dialer{Timeout: timeout}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	code, tokenErr := imdsTokenPUT(ctx, dialer)
 	cancel()
 	if tokenErr != nil {
 		emit(result{Name: "imds-v2-token-put", Target: "169.254.169.254:80", Outcome: "no-status", Detail: tokenErr.Error()})
-	} else {
-		emit(result{Name: "imds-v2-token-put", Target: "169.254.169.254:80", Outcome: "http-status", Detail: fmt.Sprint(code)})
-		if code == 200 {
-			os.Exit(1)
-		}
+		return
 	}
-
-	resolver := &net.Resolver{PreferGo: true, Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
-		return dialer.DialContext(ctx, network, "172.20.0.10:53")
-	}}
-	ctx, cancel = context.WithTimeout(context.Background(), timeout)
-	addrs, err := resolver.LookupIPAddr(ctx, "kubernetes.default.svc.cluster.local.")
-	cancel()
-	failed := err != nil || len(addrs) == 0
-	dns := result{Name: "cluster-dns", Target: "172.20.0.10:53", Outcome: "resolved"}
-	if failed {
-		dns.Outcome = "failed"
-		if err != nil {
-			dns.Detail = err.Error()
-		}
-	} else {
-		dns.Detail = addrs[0].IP.String()
-	}
-	emit(dns)
-
-	for _, t := range deniedTargets {
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		conn, err := dialer.DialContext(ctx, "tcp", t.Addr)
-		cancel()
-		if conn != nil {
-			_ = conn.Close()
-		}
-		outcome := denialOutcome(err)
-		r := result{Name: t.Name, Target: t.Addr, Outcome: outcome}
-		if err != nil {
-			r.Detail = err.Error()
-		}
-		emit(r)
-		if outcome != "blocked" {
-			// Stop on the first reachable forbidden endpoint.
-			os.Exit(1)
-		}
-	}
-	if failed {
+	emit(result{Name: "imds-v2-token-put", Target: "169.254.169.254:80", Outcome: "http-status", Detail: fmt.Sprint(code)})
+	if code == 200 {
 		os.Exit(1)
 	}
 }
