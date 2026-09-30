@@ -1,6 +1,9 @@
 *
 !go.mod
 !*.go
+!cmd/
+!cmd/netprobe/
+!cmd/netprobe/*.go
 !Dockerfile
 !.patchy
 !.patchy/Dockerfile

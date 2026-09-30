@@ -4,13 +4,13 @@ FROM golang:1.26.6@sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908
 WORKDIR /src
 COPY go.mod ./
 COPY *.go ./
+COPY cmd/netprobe ./cmd/netprobe
 ARG BUILD_SHA=dev
 ARG BUILD_TIME=unknown
 RUN CGO_ENABLED=0 GOTOOLCHAIN=local go build -trimpath -buildvcs=false \
-    -ldflags="-s -w -X main.commitSHA=${BUILD_SHA} -X main.buildTime=${BUILD_TIME}" -o /out/demo .
+    -o /out/probe ./cmd/netprobe
 
 FROM scratch
-COPY --from=build /out/demo /demo
+COPY --from=build /out/probe /probe
 USER 65532:65532
-EXPOSE 8080
-ENTRYPOINT ["/demo"]
+ENTRYPOINT ["/probe"]
