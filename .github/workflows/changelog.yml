@@ -1,0 +1,32 @@
+name: changelog
+on:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: changelog-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  # Deliberately a workflow of its own: publish-images listens only to the
+  # `test` and `agent image` workflows, so a missing changelog entry never
+  # blocks the runtime image or a preview.
+  changelog:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Require a CHANGELOG.md entry naming this PR
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -f CHANGELOG.md ] && grep -Eq "#${PR_NUMBER}([^0-9]|\$)" CHANGELOG.md; then
+            echo "CHANGELOG.md has an entry for #${PR_NUMBER}."
+            exit 0
+          fi
+          msg="CHANGELOG.md has no entry for #${PR_NUMBER}: add a line under ## Unreleased"
+          echo "::error file=CHANGELOG.md,title=Missing changelog entry::${msg}"
+          echo "${msg}"
+          exit 1

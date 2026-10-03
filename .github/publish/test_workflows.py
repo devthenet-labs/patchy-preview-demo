@@ -32,6 +32,17 @@ class WorkflowBoundaryTest(unittest.TestCase):
         text = (ROOT / "workflows" / "publish-images.yml").read_text()
         self.assertEqual(text.count("vars.PREVIEW_PUBLISH_ENABLED == 'true'"), 2)
 
+    def test_changelog_check_is_unprivileged_and_never_publishes(self):
+        text = (ROOT / "workflows" / "changelog.yml").read_text()
+        self.assertIn("permissions:\n  contents: read\n", text)
+        self.assertIn("persist-credentials: false", text)
+        for forbidden in ["id-token:", "secrets.", "role-to-assume:", "workflow_run", "pull_request_target"]:
+            self.assertNotIn(forbidden, text)
+        # Only these workflows feed the trusted publishers; a failing
+        # changelog check must never hold back an image.
+        publish = (ROOT / "workflows" / "publish-images.yml").read_text()
+        self.assertIn("workflows: [test, agent image]", publish)
+
 
 if __name__ == "__main__":
     unittest.main()

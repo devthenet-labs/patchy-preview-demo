@@ -41,7 +41,9 @@ and OIDC infrastructure; the tag does not exist yet during bootstrap.
 `test` vets/tests the exact PR head and builds an OCI runtime artifact without
 cloud credentials or OIDC. `agent image` builds the toolchain only on main.
 Trusted, separate publishers validate artifacts as data and copy them into
-different immutable ECR repositories. Fork PRs cannot publish. Read
+different immutable ECR repositories. Fork PRs cannot publish. `changelog`, a
+separate unprivileged workflow, fails a PR whose CHANGELOG.md has no line
+naming its number as `#<number>`; it never feeds a publisher. Read
 [SECURITY.md](SECURITY.md) for the complete trust boundary, rejection tests,
 activation procedure and rollback.
 
