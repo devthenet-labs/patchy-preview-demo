@@ -66,6 +66,19 @@ func TestCardColour(t *testing.T) {
 	}
 }
 
+func TestFooter(t *testing.T) {
+	h := newHandler("test", "test")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	body := w.Body.String()
+	if !strings.Contains(body, "Deployed by patchy") {
+		t.Fatalf("body=%q", body)
+	}
+	if strings.Index(body, "Built:") > strings.Index(body, "Deployed by patchy") {
+		t.Fatalf("footer must appear after build-time marker: body=%q", body)
+	}
+}
+
 func TestHEAD(t *testing.T) {
 	server := httptest.NewServer(newHandler("test", "test"))
 	t.Cleanup(server.Close)
