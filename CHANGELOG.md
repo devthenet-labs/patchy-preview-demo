@@ -4,3 +4,5 @@ Every pull request adds a line under `## Unreleased` that names its own number a
 fails without one.
 
 ## Unreleased
+
+- Add this changelog and the `changelog` pull-request check (#8).
