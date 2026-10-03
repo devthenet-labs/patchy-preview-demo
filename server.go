@@ -17,7 +17,7 @@ type version struct {
 var page = template.Must(template.New("home").Parse(`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <title>Patchy preview demo</title>
-<style>.card{background-color:#0d9488;color:#fff;padding:1.5rem;border-radius:0.5rem;font-family:sans-serif}</style></head><body><main class="card"><h1>Hello from patchy</h1>
+<style>.card{background-color:#7c3aed;color:#fff;padding:1.5rem;border-radius:0.5rem;font-family:sans-serif}</style></head><body><main class="card"><h1>Hello from patchy</h1>
 <p>A small, stateless Go app. No accounts, storage, secrets, or outbound requests.</p>
 <p>Revision: <code>{{.SHA}}</code></p><p>Built: <code>{{.Built}}</code></p>
 <nav><a href="/healthz">Health</a> · <a href="/version">Version JSON</a></nav>

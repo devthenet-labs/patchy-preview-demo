@@ -61,7 +61,7 @@ func TestCardColour(t *testing.T) {
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
 	body := w.Body.String()
-	if !strings.Contains(body, "Hello from patchy") || !strings.Contains(body, "#0d9488") {
+	if !strings.Contains(body, "Hello from patchy") || !strings.Contains(body, "#7c3aed") {
 		t.Fatalf("body=%q", body)
 	}
 }
