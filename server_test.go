@@ -18,7 +18,7 @@ func TestRoutes(t *testing.T) {
 		method, path, contentType, contains string
 		status                              int
 	}{
-		{"GET", "/", "text/html; charset=utf-8", "Hello, previews!", 200},
+		{"GET", "/", "text/html; charset=utf-8", "Hello from patchy", 200},
 		{"GET", "/healthz", "application/json", `{"status":"ok"}`, 200},
 		{"GET", "/version", "application/json", `"sha":"0123456789abcdef"`, 200},
 		{"GET", "/missing", "text/plain; charset=utf-8", "404", 404},
@@ -53,6 +53,16 @@ func TestVersionAndEscaping(t *testing.T) {
 	h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
 	if strings.Contains(w.Body.String(), "<script>") || !strings.Contains(w.Body.String(), "&lt;script&gt;") {
 		t.Fatal("metadata was not HTML-escaped")
+	}
+}
+
+func TestCardColour(t *testing.T) {
+	h := newHandler("test", "test")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	body := w.Body.String()
+	if !strings.Contains(body, "Hello from patchy") || !strings.Contains(body, "#7c3aed") {
+		t.Fatalf("body=%q", body)
 	}
 }
 
