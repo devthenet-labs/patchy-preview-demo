@@ -77,6 +77,9 @@ func TestFooter(t *testing.T) {
 	if strings.Index(body, "Built:") > strings.Index(body, "Deployed by patchy") {
 		t.Fatalf("footer must appear after build-time marker: body=%q", body)
 	}
+	if !strings.Contains(body, "Deployed by patchy · built test") {
+		t.Fatalf("footer missing build time: body=%q", body)
+	}
 }
 
 func TestHEAD(t *testing.T) {
