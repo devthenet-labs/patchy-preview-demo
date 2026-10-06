@@ -82,6 +82,26 @@ func TestFooter(t *testing.T) {
 	}
 }
 
+func TestSubtitle(t *testing.T) {
+	h := newHandler("test", "test")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	body := w.Body.String()
+	const subtitle = "Previewed by patchy, one pull request at a time."
+	if !strings.Contains(body, subtitle) {
+		t.Fatalf("missing subtitle: body=%q", body)
+	}
+	headingIdx := strings.Index(body, "Hello from patchy")
+	subtitleIdx := strings.Index(body, subtitle)
+	bodyParaIdx := strings.Index(body, "A small, stateless Go app")
+	if headingIdx < 0 || subtitleIdx < 0 || bodyParaIdx < 0 || !(headingIdx < subtitleIdx && subtitleIdx < bodyParaIdx) {
+		t.Fatalf("subtitle must render directly under the heading and before the body paragraph: body=%q", body)
+	}
+	if !strings.Contains(body, `class="subtitle"`) {
+		t.Fatalf("subtitle paragraph must use the subtitle style: body=%q", body)
+	}
+}
+
 func TestHEAD(t *testing.T) {
 	server := httptest.NewServer(newHandler("test", "test"))
 	t.Cleanup(server.Close)
