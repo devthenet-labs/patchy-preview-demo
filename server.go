@@ -9,9 +9,10 @@ import (
 	"net/http"
 )
 
-type version struct {
-	SHA   string `json:"sha"`
-	Built string `json:"built"`
+type versionInfo struct {
+	SHA     string `json:"sha"`
+	Built   string `json:"built"`
+	Version string `json:"-"`
 }
 
 var page = template.Must(template.New("home").Parse(`<!doctype html>
@@ -23,11 +24,13 @@ var page = template.Must(template.New("home").Parse(`<!doctype html>
 <p>Revision: <code>{{.SHA}}</code></p><p>Built: <code>{{.Built}}</code></p>
 <nav><a href="/healthz">Health</a> · <a href="/version">Version JSON</a></nav>
 <footer>Deployed by patchy · built {{.Built}}</footer>
-</main></body></html>
+</main>
+<footer>patchy preview-demo · {{.Version}}</footer>
+</body></html>
 `))
 
-func newHandler(sha, built string) http.Handler {
-	info := version{SHA: sha, Built: built}
+func newHandler(sha, built, ver string) http.Handler {
+	info := versionInfo{SHA: sha, Built: built, Version: ver}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")

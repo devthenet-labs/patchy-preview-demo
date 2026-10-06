@@ -18,13 +18,14 @@ import (
 var (
 	commitSHA = "dev"
 	buildTime = "unknown"
+	version   = "dev"
 )
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	server := &http.Server{
-		Addr: ":8080", Handler: newHandler(commitSHA, buildTime),
+		Addr: ":8080", Handler: newHandler(commitSHA, buildTime, version),
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second,
 		WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second,
 		MaxHeaderBytes: 16 << 10,

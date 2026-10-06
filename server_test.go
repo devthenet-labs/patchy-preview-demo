@@ -13,7 +13,7 @@ import (
 )
 
 func TestRoutes(t *testing.T) {
-	h := newHandler("0123456789abcdef", "2026-09-27T00:00:00Z")
+	h := newHandler("0123456789abcdef", "2026-09-27T00:00:00Z", "test")
 	for _, tc := range []struct {
 		method, path, contentType, contains string
 		status                              int
@@ -42,11 +42,11 @@ func TestRoutes(t *testing.T) {
 
 func TestVersionAndEscaping(t *testing.T) {
 	const sha = `<script>alert("no")</script>`
-	h := newHandler(sha, "test-build")
+	h := newHandler(sha, "test-build", "test")
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, httptest.NewRequest("GET", "/version", nil))
-	var got version
-	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil || got != (version{SHA: sha, Built: "test-build"}) {
+	var got versionInfo
+	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil || got != (versionInfo{SHA: sha, Built: "test-build"}) {
 		t.Fatalf("version=%+v, error=%v", got, err)
 	}
 	w = httptest.NewRecorder()
@@ -57,7 +57,7 @@ func TestVersionAndEscaping(t *testing.T) {
 }
 
 func TestCardColour(t *testing.T) {
-	h := newHandler("test", "test")
+	h := newHandler("test", "test", "test")
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
 	body := w.Body.String()
@@ -67,7 +67,7 @@ func TestCardColour(t *testing.T) {
 }
 
 func TestFooter(t *testing.T) {
-	h := newHandler("test", "test")
+	h := newHandler("test", "test", "test")
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
 	body := w.Body.String()
@@ -83,7 +83,7 @@ func TestFooter(t *testing.T) {
 }
 
 func TestSubtitle(t *testing.T) {
-	h := newHandler("test", "test")
+	h := newHandler("test", "test", "test")
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
 	body := w.Body.String()
@@ -103,7 +103,7 @@ func TestSubtitle(t *testing.T) {
 }
 
 func TestHEAD(t *testing.T) {
-	server := httptest.NewServer(newHandler("test", "test"))
+	server := httptest.NewServer(newHandler("test", "test", "test"))
 	t.Cleanup(server.Close)
 	for _, path := range []string{"/", "/healthz", "/version"} {
 		response, err := server.Client().Head(server.URL + path)
@@ -115,5 +115,26 @@ func TestHEAD(t *testing.T) {
 		if readErr != nil || response.StatusCode != http.StatusOK || len(body) != 0 {
 			t.Fatalf("HEAD %s: status=%d bytes=%d error=%v", path, response.StatusCode, len(body), readErr)
 		}
+	}
+}
+
+func TestVersionFooter(t *testing.T) {
+	if version != "dev" {
+		t.Fatalf("package version default = %q, want %q", version, "dev")
+	}
+	for _, tc := range []struct {
+		name, ver, want string
+	}{
+		{"default version", "dev", "patchy preview-demo · dev"},
+		{"overridden version", "v1.2.3", "patchy preview-demo · v1.2.3"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newHandler("test", "test", tc.ver)
+			w := httptest.NewRecorder()
+			h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+			if !strings.Contains(w.Body.String(), tc.want) {
+				t.Fatalf("missing version footer: body=%q", w.Body.String())
+			}
+		})
 	}
 }
