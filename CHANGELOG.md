@@ -8,4 +8,4 @@ fails without one.
 - Add this changelog and the `changelog` pull-request check (#8).
 - Add a static "Deployed by patchy" footer to the welcome card (#9).
 - Show the build time in the card footer (#10).
-- Add a subtitle under the welcome heading (#15).
+- Add a subtitle under the welcome heading (#11).
