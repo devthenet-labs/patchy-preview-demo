@@ -9,3 +9,4 @@ fails without one.
 - Add a static "Deployed by patchy" footer to the welcome card (#9).
 - Show the build time in the card footer (#10).
 - Add a subtitle under the welcome heading (#11).
+- Add a server-rendered "Deployed N minutes ago" line and a Preview badge to the welcome page (#16).
