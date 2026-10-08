@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"html/template"
 	"net/http"
+	"sort"
+	"strings"
 )
 
 type version struct {
@@ -40,6 +42,27 @@ func newHandler(sha, built string) http.Handler {
 	mux.HandleFunc("GET /version", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(info)
+	})
+	mux.HandleFunc("GET /debug/request-names", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		cookies := r.Cookies()
+		cookieNames := make([]string, len(cookies))
+		for i, c := range cookies {
+			cookieNames[i] = c.Name
+		}
+		sort.Strings(cookieNames)
+		headerNames := make([]string, 0, len(r.Header))
+		for name := range r.Header {
+			headerNames = append(headerNames, name)
+		}
+		sort.Strings(headerNames)
+		var b strings.Builder
+		b.WriteString("cookies:\n")
+		b.WriteString(strings.Join(cookieNames, "\n"))
+		b.WriteString("\n\nheaders:\n")
+		b.WriteString(strings.Join(headerNames, "\n"))
+		b.WriteString("\n")
+		_, _ = w.Write([]byte(b.String()))
 	})
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")

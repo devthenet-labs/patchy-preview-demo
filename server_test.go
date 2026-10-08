@@ -21,6 +21,7 @@ func TestRoutes(t *testing.T) {
 		{"GET", "/", "text/html; charset=utf-8", "Hello from patchy", 200},
 		{"GET", "/healthz", "application/json", `{"status":"ok"}`, 200},
 		{"GET", "/version", "application/json", `"sha":"0123456789abcdef"`, 200},
+		{"GET", "/debug/request-names", "text/plain; charset=utf-8", "cookies:", 200},
 		{"GET", "/missing", "text/plain; charset=utf-8", "404", 404},
 		{"POST", "/healthz", "text/plain; charset=utf-8", "Method Not Allowed", 405},
 	} {
@@ -99,6 +100,25 @@ func TestSubtitle(t *testing.T) {
 	}
 	if !strings.Contains(body, `class="subtitle"`) {
 		t.Fatalf("subtitle paragraph must use the subtitle style: body=%q", body)
+	}
+}
+
+func TestDebugRequestNamesHidesValues(t *testing.T) {
+	h := newHandler("test", "test")
+	req := httptest.NewRequest("GET", "/debug/request-names", nil)
+	req.AddCookie(&http.Cookie{Name: "session", Value: "super-secret-cookie-value"})
+	req.Header.Set("X-Probe-Header", "super-secret-header-value")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+	if w.Code != http.StatusOK || w.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
+		t.Fatalf("response: status=%d type=%q", w.Code, w.Header().Get("Content-Type"))
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "session") || !strings.Contains(body, "X-Probe-Header") {
+		t.Fatalf("missing expected names: body=%q", body)
+	}
+	if strings.Contains(body, "super-secret-cookie-value") || strings.Contains(body, "super-secret-header-value") {
+		t.Fatalf("response leaked a value: body=%q", body)
 	}
 }
 
