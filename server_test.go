@@ -102,6 +102,26 @@ func TestSubtitle(t *testing.T) {
 	}
 }
 
+func TestTagline(t *testing.T) {
+	h := newHandler("test", "test")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	body := w.Body.String()
+	const tagline = "Signed-in preview test"
+	if !strings.Contains(body, tagline) {
+		t.Fatalf("missing tagline: body=%q", body)
+	}
+	headingIdx := strings.Index(body, "Hello from patchy")
+	taglineIdx := strings.Index(body, tagline)
+	bodyParaIdx := strings.Index(body, "A small, stateless Go app")
+	if headingIdx < 0 || taglineIdx < 0 || bodyParaIdx < 0 || !(headingIdx < taglineIdx && taglineIdx < bodyParaIdx) {
+		t.Fatalf("tagline must render under the heading and before the body paragraph: body=%q", body)
+	}
+	if !strings.Contains(body, `class="tagline"`) {
+		t.Fatalf("tagline paragraph must use the tagline style: body=%q", body)
+	}
+}
+
 func TestHEAD(t *testing.T) {
 	server := httptest.NewServer(newHandler("test", "test"))
 	t.Cleanup(server.Close)
