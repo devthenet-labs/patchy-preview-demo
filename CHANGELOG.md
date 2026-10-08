@@ -9,4 +9,4 @@ fails without one.
 - Add a static "Deployed by patchy" footer to the welcome card (#9).
 - Show the build time in the card footer (#10).
 - Add a subtitle under the welcome heading (#11).
-- Show the build's short commit on the welcome page (#12).
+- Show the build's short commit on the welcome page (#15).
