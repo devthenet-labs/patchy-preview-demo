@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestRoutes(t *testing.T) {
@@ -99,6 +100,77 @@ func TestSubtitle(t *testing.T) {
 	}
 	if !strings.Contains(body, `class="subtitle"`) {
 		t.Fatalf("subtitle paragraph must use the subtitle style: body=%q", body)
+	}
+}
+
+func TestRelativeTime(t *testing.T) {
+	for _, tc := range []struct {
+		since time.Duration
+		want  string
+	}{
+		{0, "just now"},
+		{30 * time.Second, "just now"},
+		{-5 * time.Second, "just now"},
+		{1 * time.Minute, "1 minute ago"},
+		{90 * time.Second, "1 minute ago"},
+		{2 * time.Minute, "2 minutes ago"},
+		{47 * time.Minute, "47 minutes ago"},
+	} {
+		if got := relativeTime(tc.since); got != tc.want {
+			t.Errorf("relativeTime(%v) = %q, want %q", tc.since, got, tc.want)
+		}
+	}
+}
+
+func TestDeployedLine(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		offset time.Duration
+		want   string
+	}{
+		{"now", 0, "Deployed just now"},
+		{"over a minute", -70 * time.Second, "Deployed 1 minute ago"},
+		{"ten minutes", -10 * time.Minute, "Deployed 10 minutes ago"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			built := time.Now().Add(tc.offset).Format(time.RFC3339)
+			h := newHandler("sha", built)
+			w := httptest.NewRecorder()
+			h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+			body := w.Body.String()
+			if !strings.Contains(body, tc.want) {
+				t.Fatalf("body=%q, want containing %q", body, tc.want)
+			}
+		})
+	}
+}
+
+func TestDeployedLineOmittedWhenUnparseable(t *testing.T) {
+	h := newHandler("test", "test")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	body := w.Body.String()
+	if strings.Contains(body, "ago") || strings.Contains(body, "Deployed just now") {
+		t.Fatalf("expected no deployed line for unparseable build time: body=%q", body)
+	}
+}
+
+func TestBadge(t *testing.T) {
+	h := newHandler("test", "test")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	body := w.Body.String()
+	if !strings.Contains(body, `class="badge"`) || !strings.Contains(body, "Preview") {
+		t.Fatalf("missing badge: body=%q", body)
+	}
+	headingIdx := strings.Index(body, "Hello from patchy")
+	badgeIdx := strings.Index(body, "Preview")
+	subtitleIdx := strings.Index(body, "Previewed by patchy")
+	if headingIdx < 0 || badgeIdx < 0 || subtitleIdx < 0 || !(headingIdx < badgeIdx && badgeIdx < subtitleIdx) {
+		t.Fatalf("badge must render inside the heading: body=%q", body)
+	}
+	if !strings.Contains(body, "#f59e0b") || !strings.Contains(body, "#7c3aed") {
+		t.Fatalf("badge colour must contrast with card colour: body=%q", body)
 	}
 }
 
