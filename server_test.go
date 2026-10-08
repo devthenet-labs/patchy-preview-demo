@@ -102,6 +102,35 @@ func TestSubtitle(t *testing.T) {
 	}
 }
 
+func TestPreviewBuildLine(t *testing.T) {
+	const sha = "abcdef0123456789"
+	h := newHandler(sha, "test")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	body := w.Body.String()
+	const want = "Preview of build abcdef012345"
+	if !strings.Contains(body, want) {
+		t.Fatalf("missing preview build line: body=%q", body)
+	}
+	headingIdx := strings.Index(body, "Hello from patchy")
+	lineIdx := strings.Index(body, want)
+	bodyParaIdx := strings.Index(body, "A small, stateless Go app")
+	if headingIdx < 0 || lineIdx < 0 || bodyParaIdx < 0 ||
+		!(headingIdx < lineIdx && lineIdx < bodyParaIdx) {
+		t.Fatalf("preview build line must render under the heading: body=%q", body)
+	}
+}
+
+func TestPreviewBuildLineShortSHA(t *testing.T) {
+	h := newHandler("abc", "test")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	body := w.Body.String()
+	if !strings.Contains(body, "Preview of build abc</p>") {
+		t.Fatalf("short sha not shown verbatim: body=%q", body)
+	}
+}
+
 func TestHEAD(t *testing.T) {
 	server := httptest.NewServer(newHandler("test", "test"))
 	t.Cleanup(server.Close)

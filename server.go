@@ -14,10 +14,23 @@ type version struct {
 	Built string `json:"built"`
 }
 
+type pageData struct {
+	version
+	ShortSHA string
+}
+
+func shortCommit(sha string) string {
+	if len(sha) > 12 {
+		return sha[:12]
+	}
+	return sha
+}
+
 var page = template.Must(template.New("home").Parse(`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <title>Patchy preview demo</title>
 <style>.card{background-color:#7c3aed;color:#fff;padding:1.5rem;border-radius:0.5rem;font-family:sans-serif}.subtitle{font-size:0.85rem;opacity:.85;margin:.15rem 0 1rem}</style></head><body><main class="card"><h1>Hello from patchy</h1>
+<p class="subtitle">Preview of build {{.ShortSHA}}</p>
 <p class="subtitle">Previewed by patchy, one pull request at a time.</p>
 <p>A small, stateless Go app. No accounts, storage, secrets, or outbound requests.</p>
 <p>Revision: <code>{{.SHA}}</code></p><p>Built: <code>{{.Built}}</code></p>
@@ -28,10 +41,11 @@ var page = template.Must(template.New("home").Parse(`<!doctype html>
 
 func newHandler(sha, built string) http.Handler {
 	info := version{SHA: sha, Built: built}
+	data := pageData{version: info, ShortSHA: shortCommit(sha)}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_ = page.Execute(w, info)
+		_ = page.Execute(w, data)
 	})
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
