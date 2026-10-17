@@ -12,6 +12,9 @@ Routes on port 8080:
 - `GET /id`: `{"id":"<uuid>"}`, a fresh random (v4) UUID.
 - `GET /semver?v=<version>`: `{"valid": bool, "canonical": string}`, using golang.org/x/mod/semver; canonical is empty when invalid.
 - `GET /slug?s=<text>`: `{"slug": string}`, using github.com/gosimple/slug.
+- `GET /wordcount?text=<string>`: `{"words": int, "characters": int}`;
+  words are runs of non-whitespace separated by Unicode whitespace,
+  characters counts runes. A missing `text` is a 400 with `{"error": string}`.
 
 ## Develop
 

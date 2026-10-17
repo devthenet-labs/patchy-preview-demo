@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"html/template"
 	"net/http"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/gosimple/slug"
@@ -36,6 +38,15 @@ type semverResponse struct {
 
 type slugResponse struct {
 	Slug string `json:"slug"`
+}
+
+type wordCountResponse struct {
+	Words      int `json:"words"`
+	Characters int `json:"characters"`
+}
+
+type errorResponse struct {
+	Error string `json:"error"`
 }
 
 var page = template.Must(template.New("home").Parse(`<!doctype html>
@@ -87,6 +98,19 @@ func newHandler(sha, built string) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		s := r.URL.Query().Get("s")
 		_ = json.NewEncoder(w).Encode(slugResponse{Slug: slug.Make(s)})
+	})
+	mux.HandleFunc("GET /wordcount", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if !r.URL.Query().Has("text") {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(errorResponse{Error: "missing text parameter"})
+			return
+		}
+		text := r.URL.Query().Get("text")
+		_ = json.NewEncoder(w).Encode(wordCountResponse{
+			Words:      len(strings.Fields(text)),
+			Characters: utf8.RuneCountInString(text),
+		})
 	})
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")

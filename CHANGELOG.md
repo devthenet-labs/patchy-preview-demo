@@ -18,3 +18,4 @@ fails without one.
 - Title-case the welcome greeting with golang.org/x/text/cases (#22).
 - Add a GET /semver endpoint validating versions with golang.org/x/mod/semver (#23).
 - Add a GET /slug endpoint using github.com/gosimple/slug (#24).
+- Add a GET /wordcount endpoint counting words and Unicode characters (#25).

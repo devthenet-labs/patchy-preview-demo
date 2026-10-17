@@ -27,6 +27,8 @@ func TestRoutes(t *testing.T) {
 		{"GET", "/version", "application/json", `"sha":"0123456789abcdef"`, 200},
 		{"GET", "/id", "application/json", `"id":"`, 200},
 		{"GET", "/semver?v=v1.2.3", "application/json", `"valid":true`, 200},
+		{"GET", "/wordcount?text=hello+world", "application/json", `"words":2`, 200},
+		{"GET", "/wordcount", "application/json", `"error"`, 400},
 		{"GET", "/missing", "text/plain; charset=utf-8", "404", 404},
 		{"POST", "/healthz", "text/plain; charset=utf-8", "Method Not Allowed", 405},
 	} {
@@ -145,6 +147,51 @@ func TestSlug(t *testing.T) {
 				t.Fatalf("got=%+v, want=%+v", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestWordCount(t *testing.T) {
+	h := newHandler("test", "test")
+	call := func(query string) wordCountResponse {
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest("GET", "/wordcount"+query, nil))
+		if w.Code != http.StatusOK || w.Header().Get("Content-Type") != "application/json" {
+			t.Fatalf("response: status=%d type=%q", w.Code, w.Header().Get("Content-Type"))
+		}
+		var got wordCountResponse
+		if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+			t.Fatalf("unmarshal: %v, body=%q", err, w.Body.String())
+		}
+		return got
+	}
+	for _, tc := range []struct {
+		query string
+		want  wordCountResponse
+	}{
+		{"?text=", wordCountResponse{Words: 0, Characters: 0}},
+		{"?text=hello", wordCountResponse{Words: 1, Characters: 5}},
+		{"?text=hello+world", wordCountResponse{Words: 2, Characters: 11}},
+		{"?text=hello%20%20%20world", wordCountResponse{Words: 2, Characters: 13}},
+		{"?text=h%C3%A9llo", wordCountResponse{Words: 1, Characters: 5}},
+	} {
+		t.Run(tc.query, func(t *testing.T) {
+			if got := call(tc.query); got != tc.want {
+				t.Fatalf("got=%+v, want=%+v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestWordCountMissingText(t *testing.T) {
+	h := newHandler("test", "test")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/wordcount", nil))
+	if w.Code != http.StatusBadRequest || w.Header().Get("Content-Type") != "application/json" {
+		t.Fatalf("response: status=%d type=%q", w.Code, w.Header().Get("Content-Type"))
+	}
+	var got errorResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil || got.Error == "" {
+		t.Fatalf("unmarshal: %v, body=%q", err, w.Body.String())
 	}
 }
 
